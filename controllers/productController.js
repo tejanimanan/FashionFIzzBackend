@@ -1,4 +1,6 @@
 const Product = require('../models/Product');
+const User = require('../models/User');
+const Order = require('../models/Order')
 const path = require('path');
 const fs = require('fs');
 // GET all products
@@ -25,8 +27,20 @@ exports.getProductById = async (req, res) => {
 // CREATE a new product with auto-incremented id
 exports.createProduct = async (req, res) => {
   try {
-    const lastProduct = await Product.findOne().sort({ id: -1 });
-     const newId = lastProduct ? parseInt(lastProduct.id) + 1 : 1;
+    // const lastProduct = await Product.findOne().sort({ id: -1 });
+    const lastProduct = await Product.aggregate([
+  {
+    $addFields: {
+      idAsNumber: { $toInt: "$id" }
+    }
+  },
+  { $sort: { idAsNumber: -1 } },
+  { $limit: 1 }
+]);
+
+  
+    //  const newId = lastProduct ? parseInt(lastProduct.id) + 3 : 1;
+    const newId= lastProduct.length ? String(lastProduct[0].idAsNumber + 1) : "1";
     const {  name, category, price, description } = req.body;
     const size = JSON.parse(req.body.size);
     const color = JSON.parse(req.body.color);
@@ -110,5 +124,37 @@ exports.deleteProduct = async (req, res) => {
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete product' });
+  }
+};
+
+//counter for dashboard
+exports.getDashboardCounts = async (req, res) => {
+  try {
+    // Count products by category
+    const menCount = await Product.countDocuments({ category: 'Men' });
+    const womenCount = await Product.countDocuments({ category: 'Women' });
+    const accessoriesCount = await Product.countDocuments({ category: 'Accessories' });
+
+    // Count all users
+    const userCount = await User.countDocuments();
+     const Allproduct = await Product.countDocuments();
+
+    // Count all orders
+    const orderCount = await Order.countDocuments();
+
+    // Send all counts
+    res.status(200).json({
+      productCounts: {
+        Men: menCount,
+        Women: womenCount,
+        Accessories: accessoriesCount
+      },
+      userCount,
+      orderCount,
+      Allproduct
+    });
+  } catch (error) {
+    console.error('Dashboard count error:', error);
+    res.status(500).json({ error: 'Failed to fetch counts' });
   }
 };

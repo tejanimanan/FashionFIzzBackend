@@ -5,7 +5,8 @@ const {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getDashboardCounts
 } = require('../controllers/productController');
 const multer = require('multer');
 const path = require('path');
@@ -21,6 +22,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+router.get('/dashboard-counts',getDashboardCounts); 
 router.post('/',upload.single('image'), createProduct);
 router.get('/', getProducts);
 router.get('/:id',   getProductById);
