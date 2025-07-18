@@ -117,15 +117,33 @@ exports.updateProduct = async (req, res) => {
 };
 
 // DELETE product by custom id
+// DELETE product by custom id
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findOneAndDelete({ id: req.params.id });
-    if (!product) return res.status(404).json({ message: 'Product not found' });
+    const product = await Product.findOne({ id: req.params.id });
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Delete image from /uploads folder if it exists
+    if (product.image) {
+      const imagePath = path.join(__dirname, '..', product.image); // assumes image is like /uploads/filename.jpg
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    // Now delete the product from DB
+    await Product.findOneAndDelete({ id: req.params.id });
+
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
+    console.error('Delete product error:', error);
     res.status(500).json({ error: 'Failed to delete product' });
   }
 };
+
 
 //counter for dashboard
 exports.getDashboardCounts = async (req, res) => {
